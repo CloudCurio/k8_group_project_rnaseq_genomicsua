@@ -24,16 +24,17 @@ library(SeuratDisk)
 
 setwd("C:\\Users\\liber\\Desktop\\Study\\Genomics UA\\RNA-seq analysis with R\\Group Project")
 
-data_path <- "..//..//hard_data//GSE129308//"
+in_path <- "input_data//GSE129308//"
+out_path <- "input_data//GSE129308//rds_data//"
 
 ###############################################################################
 #'read input files
 ###############################################################################
 
-file_list <- list.files(paste(data_path, "raw_data//", sep = ""), all.files = T, full.names = F)
+file_list <- list.files(paste(in_path, "raw_data//", sep = ""), all.files = T, full.names = F)
 file_list <- file_list[-c(1:2)] #drop /. and /..
 
-dir.create(paste(data_path, "seurat_data"))
+dir.create(paste(in_path, "rds_data"))
 
 ###############################################################################
 #'load h5 files as dgcMatrix objects and save them as .rds in the
@@ -42,6 +43,6 @@ dir.create(paste(data_path, "seurat_data"))
 ###############################################################################
 
 for (filename in file_list){
-  foo <- Read10X_h5(paste(data_path, "raw_data//", filename, sep = ""))
-  saveRDS(foo, file = paste("C:\\Users\\liber/Desktop\\", filename, ".rds", sep = ""))
+  foo <- Read10X_h5(paste(in_path, "raw_data//", filename, sep = ""))
+  saveRDS(foo, file = paste(out_path, filename, ".rds", sep = ""))
 }
