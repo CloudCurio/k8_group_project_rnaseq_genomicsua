@@ -1,0 +1,47 @@
+"0","if (file.exists(annotation_file)){
+    mmdb <- read_tsv(annotation_file)
+    gene_symbol <- read_tsv(gene_symbol_file)
+}else{
+    # Connect to AnnotationHub
+    ah <- AnnotationHub()
+    # Query AnnotationHub
+    mm_ens <- query(ah, c(""Mus musculus"", ""EnsDb""))
+
+    # Get Ensembl 112
+    # AH116909
+    mm_ens <- mm_ens[[""AH116909""]]
+
+    # Extract gene-level information
+    txdb <- transcripts(mm_ens,
+                    return.type = ""data.frame"") %>% 
+    dplyr::select(tx_id, gene_id)  
+
+    genedb <- genes(mm_ens, 
+              return.type = ""data.frame"") %>% 
+    dplyr::select(gene_id, gene_name, symbol)  
+
+    gene_symbol <- genedb %>% dplyr::select(gene_id, symbol)
+    write_tsv(gene_symbol, gene_symbol_file)
+
+    mmdb <- inner_join(txdb, genedb)
+    write.table(mmdb, 
+            file = annotation_file , 
+            sep = ""\t"", 
+            row.names = F, 
+            quote = F)
+}
+"
+"2","[1mRows: [22m[34m149194[39m [1mColumns: [22m[34m4[39m"
+"2","[36m──[39m [1mColumn specification[22m [36m─────────────────────────────────────────────────────────────[39m
+[1mDelimiter:[22m ""\t""
+[31mchr[39m (4): tx_id, gene_id, gene_name, symbol"
+"2","
+[36mℹ[39m Use `spec()` to retrieve the full column specification for this data.
+[36mℹ[39m Specify the column types or set `show_col_types = FALSE` to quiet this message."
+"2","[1mRows: [22m[34m57186[39m [1mColumns: [22m[34m2[39m"
+"2","[36m──[39m [1mColumn specification[22m [36m─────────────────────────────────────────────────────────────[39m
+[1mDelimiter:[22m ""\t""
+[31mchr[39m (2): gene_id, symbol"
+"2","
+[36mℹ[39m Use `spec()` to retrieve the full column specification for this data.
+[36mℹ[39m Specify the column types or set `show_col_types = FALSE` to quiet this message."

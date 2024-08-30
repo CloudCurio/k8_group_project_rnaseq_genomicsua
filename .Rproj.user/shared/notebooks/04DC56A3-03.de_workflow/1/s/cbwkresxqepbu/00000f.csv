@@ -1,0 +1,51 @@
+"0","if (file.exists(counts_csv)){
+    counts_prepared <- read_csv(counts_csv)
+    counts_tpm <- read_csv(counts_tpm_csv)
+}else{
+    counts_raw_csv <- ""../../01_data/count_matrix_raw.csv""
+    counts_raw <- read_csv(counts_raw_csv) 
+    colnames(counts_raw)[1] <- ""gene_name""
+    # counts_tpm <- read_csv(counts_tpm_csv)
+    # use Ensembl_Gene_id
+    # remove genes with NA
+    # filter protein coding genes
+
+    counts_prepared <- counts_raw %>% left_join(gene_symbol, by = c(""gene_name"" = ""symbol"")) %>%
+       dplyr::select(-gene_name) %>% drop_na(gene_id) %>% 
+       semi_join(protein_coding_genes, by = c(""gene_id"" = ""ensembl_gene_id"")) %>% 
+       relocate(gene_id) %>% rename(ensembl_gene_id = gene_id)
+       
+    gene_length <- read_tsv(""../../99_technical/GC_lengths.tsv"") 
+    counts <- counts_prepared %>% arrange(ensembl_gene_id)
+    gene_ids <- intersect(counts$ensembl_gene_id, gene_length$ensembl_gene_id)
+    
+    v_len <- gene_length %>% dplyr::filter(ensembl_gene_id %in% gene_ids)
+    counts_prepared <- counts %>% dplyr::filter(ensembl_gene_id %in% gene_ids)
+
+    write_csv(counts_prepared, counts_csv)
+    counts <- counts %>% column_to_rownames(""ensembl_gene_id"")
+    
+    x <- counts / v_len$Length
+    counts_tpm <- t(t(x) * 1e6 / colSums(x)) %>% as.data.frame() %>% round(2) %>% 
+      rownames_to_column(""ensembl_gene_id"") %>% left_join(gene_symbol, 
+                                                          by = c(""ensembl_gene_id"" = ""gene_id"")) %>%
+      write_csv(counts_tpm_csv)
+    
+}
+"
+"2","[1mRows: [22m[34m17810[39m [1mColumns: [22m[34m49[39m"
+"2","[36m──[39m [1mColumn specification[22m [36m─────────────────────────────────────────────────────────────────────────────[39m
+[1mDelimiter:[22m "",""
+[31mchr[39m  (1): ensembl_gene_id
+[32mdbl[39m (48): CDL_0002, CDL_0003, CDL_0007, CDL_0008, CDL_0009, CDL_0011, CDL_0036, CDL_0037, CDL_003..."
+"2","
+[36mℹ[39m Use `spec()` to retrieve the full column specification for this data.
+[36mℹ[39m Specify the column types or set `show_col_types = FALSE` to quiet this message."
+"2","[1mRows: [22m[34m17810[39m [1mColumns: [22m[34m50[39m"
+"2","[36m──[39m [1mColumn specification[22m [36m─────────────────────────────────────────────────────────────────────────────[39m
+[1mDelimiter:[22m "",""
+[31mchr[39m  (2): ensembl_gene_id, symbol
+[32mdbl[39m (48): CDL_0002, CDL_0003, CDL_0007, CDL_0008, CDL_0009, CDL_0011, CDL_0036, CDL_0037, CDL_003..."
+"2","
+[36mℹ[39m Use `spec()` to retrieve the full column specification for this data.
+[36mℹ[39m Specify the column types or set `show_col_types = FALSE` to quiet this message."

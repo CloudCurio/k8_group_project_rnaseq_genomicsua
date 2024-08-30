@@ -1,0 +1,25 @@
+{
+    "id": "584628EF",
+    "path": "~/GitHub/2024-daad-rnaseq-course/02_classes/06_differential_expression/99_01_distribution_and_tools_filled.Rmd",
+    "project_path": null,
+    "type": "r_markdown",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1725020888980.0,
+    "source_on_save": false,
+    "relative_order": 3,
+    "properties": {
+        "chunk_output_type": "inline",
+        "source_window_id": "",
+        "Source": "Source"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1724085618,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1724085618,
+    "read_only": false,
+    "read_only_alternatives": []
+}

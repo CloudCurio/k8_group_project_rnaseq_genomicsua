@@ -1,0 +1,30 @@
+"0","if (file.exists(metadata_csv)){
+     metadata <- read_csv(metadata_csv)
+}else{
+    metadata_raw <- read_tsv(""../../01_data/E-MTAB-13804.sdrf.txt"") %>%
+                      dplyr::select(-any_of(c(""Scan Name"", ""Comment[SUBMITTED_FILE_NAME]"", 
+                            ""Comment[ENA_RUN]"", ""Comment[FASTQ_URI]""))) %>% distinct() %>% 
+                            dplyr::rename(sample_id = `Source Name`) 
+    colnames(metadata_raw)[7] <- ""age""
+    colnames(metadata_raw)[44] <- ""stimulus1""
+    colnames(metadata_raw)[46] <- ""factor_value""
+    
+    
+    metadata_raw$stimulus <- str_replace_all(metadata_raw$stimulus1, ""control \\(olive oil\\)"", ""olive_oil"")
+    metadata_raw$stimulus <- str_replace_all(metadata_raw$stimulus, ""control \\(saline\\)"", ""saline"")
+    metadata_raw$stimulus <- str_replace_all(metadata_raw$stimulus, ""carbon tetrachloride"", ""carbon_tetrachloride"")
+    
+    metadata <- metadata_raw %>% separate(factor_value, sep = ""_"", 
+                                          into = c(""experiment"", ""treatment"")) %>%
+         dplyr::select(sample_id, experiment, treatment, stimulus)
+    
+    write_csv(metadata, metadata_csv)
+}
+"
+"2","[1mRows: [22m[34m48[39m [1mColumns: [22m[34m4[39m"
+"2","[36m──[39m [1mColumn specification[22m [36m─────────────────────────────────────────────────────────────────────────────[39m
+[1mDelimiter:[22m "",""
+[31mchr[39m (4): sample_id, experiment, treatment, stimulus"
+"2","
+[36mℹ[39m Use `spec()` to retrieve the full column specification for this data.
+[36mℹ[39m Specify the column types or set `show_col_types = FALSE` to quiet this message."

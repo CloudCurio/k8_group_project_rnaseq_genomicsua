@@ -1,0 +1,191 @@
+---
+title: "Differential expression 1.1 Distributions and tools"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+
+## Setup
+
+```{r}
+#install.packages("pacman")
+pacman::p_load("here", "tidyverse", "scales", "maEndToEnd", "pd.mogene.2.0.st", "oligo")
+
+i_am("02_classes/06_differential_expression/01_distribution_and_tools.Rmd")
+```
+
+## RNA-seq data distribution
+
+```{r}
+counts <- read.csv(here("01_data", "count_matrix_raw.csv"), row.names = 1)
+metadata <- read.csv(here("01_data", "metadata.csv"), row.names = 1)
+metadata <- metadata %>% unite(experiment_treatment, c("experiment", "treatment"))
+```
+
+```{r}
+counts
+```
+
+```{r}
+metadata
+```
+
+```{r}
+ggplot(counts, aes(x=CDL_0002)) +
+  geom_density(color="darkblue", fill="lightblue")
+```
+
+```{r}
+count_summary <- counts %>%
+  as.vector() %>%
+  unlist() %>%
+  tibble::tibble(counts = .) %>%
+  dplyr::count(counts) %>%
+  arrange(counts) %>%
+  rename(frequency = n)
+
+```
+
+~25 000 * 48 = ...
+
+```{r}
+count_summary
+```
+
+
+```{r}
+ggplot(count_summary[1:50,], aes(x = counts, y = frequency, fill = frequency)) +
+  scale_y_continuous(labels = scales::comma) +
+  geom_bar(stat = "identity", width=0.7) +
+  labs(title = "Histogram of Counts vs Frequency",
+       x = "Counts",
+       y = "Frequency") +
+  scale_fill_gradient(low = "#AA05BA", high = "#56B1F7") +
+  theme_minimal()
+```
+
+## RNA array data distribution
+
+https://www.bioconductor.org/packages/release/workflows/vignettes/maEndToEnd/inst/doc/MA-Workflow.html#7_Background_adjustment,_calibration,_summarization_and_annotation
+
+```{r}
+data_dir <- here("02_classes", "06_differential_expression", "sample_datasets")
+
+celFiles <- list.celfiles(data_dir, listGzipped = TRUE, full.name=TRUE)
+affyRaw <- read.celfiles(celFiles)
+```
+
+```{r}
+eset <- rma(affyRaw)
+```
+
+
+```{r}
+array_matrix <- exprs(eset)
+```
+
+```{r}
+array_matrix
+```
+
+
+```{r}
+ggplot(as.data.frame(array_matrix), aes(x=GSM6926882_Control_M1_.CEL.gz)) +
+  geom_density(color="darkblue", fill="lightblue")
+```
+
+
+
+## Spectral data distribution
+https://www.biorxiv.org/content/biorxiv/early/2024/01/28/2024.01.26.577493/DC2/embed/media-2.xlsx?download=true
+
+
+```{r}
+prot_data <- read.csv(here("02_classes", "06_differential_expression", "sample_datasets", "media-2.csv"))
+```
+
+```{r}
+prot_data
+```
+
+
+```{r}
+ggplot(prot_data, aes(x=DMSO_1)) +
+  geom_density(color="darkblue", fill="lightblue")
+```
+## Tools
+
+```{r}
+pacman::p_load("limma", "edgeR", "DESeq2")
+```
+
+### limma
+
+```{r}
+unique(metadata$experiment_treatment)
+```
+
+
+```{r}
+dge <- DGEList(counts = counts)
+dge <- calcNormFactors(dge)
+design <- model.matrix(~0 + experiment_treatment, data = metadata)
+
+colnames(design) <- c("CCL4_CIR", "CCL4_HC", "CCL4_R1", "CCL4_R2",
+                      "TAA_CIR", "TAA_HC", "TAA_R1", "TAA_R2")
+
+v <- voom(dge, design)
+fit <- lmFit(v, design)
+
+contrast_matrix <- makeContrasts(TAA_CIR-TAA_HC, levels = design)
+
+fit2 <- contrasts.fit(fit, contrast_matrix)
+
+fit2 <- eBayes(fit2)
+
+top_table <- topTable(fit2, adjust = "BH", number = Inf)
+
+top_table_de <- top_table %>% 
+  filter(adj.P.Val < 0.05, abs(logFC) > 1.5) %>% arrange(logFC)
+
+
+write.csv(top_table_de, here("03_outputs", "06_limma_DE_TAACIRvsTAAHC.csv"))
+```
+
+
+```{r}
+top_table_de
+```
+
+### edgeR
+
+```{r}
+group <- factor(metadata$experiment_treatment)
+dge <- DGEList(counts = counts, group = group)
+
+dge <- calcNormFactors(dge)
+
+
+design <- model.matrix(~0 + group)
+colnames(design) <- levels(group)
+dge <- estimateDisp(dge, design)
+
+fit <- glmFit(dge, design)
+
+contrast <- makeContrasts(TAACIRvsTAAHC = TAA_CIR - TAA_HC, levels = design)
+# Perform the likelihood ratio test
+lrt <- glmLRT(fit, contrast=contrast)
+
+# Get the top differentially expressed genes
+topTags <- topTags(lrt, n = Inf)
+topGenes <- topTags$table
+
+edger_de <- topGenes %>% filter(FDR < 0.05, abs(logFC) > 1.5) %>% arrange(desc(logFC))
+
+edger_de
+
+write.csv(edger_de, here("03_outputs", "06_edgeR_DE_TAACIRvsTAAHC.csv"))
+```
+
+### DESeq2 
+Let's work on that in the next script

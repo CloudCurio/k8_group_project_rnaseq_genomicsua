@@ -1,0 +1,26 @@
+{
+    "id": "A66C2DDF",
+    "path": "C:/Users/liber/Desktop/Study/Genomics UA/RNA-seq analysis with R/Group Project/create_metadata.R",
+    "project_path": "create_metadata.R",
+    "type": "r_source",
+    "hash": "3298499627",
+    "contents": "",
+    "dirty": false,
+    "created": 1725024424079.0,
+    "source_on_save": false,
+    "relative_order": 5,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "52,0",
+        "scrollLine": "23"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1725026502,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1725026502675,
+    "read_only": false,
+    "read_only_alternatives": []
+}
