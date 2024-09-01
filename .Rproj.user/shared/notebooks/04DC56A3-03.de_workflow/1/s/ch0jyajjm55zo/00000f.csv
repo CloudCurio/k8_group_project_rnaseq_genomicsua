@@ -1,3 +1,0 @@
-"0","plotPCA(rld, intgroup = c(""treatment"")) + "
-"0","  geom_label_repel(aes(label = name)) + "
-"0","  theme_bw()"

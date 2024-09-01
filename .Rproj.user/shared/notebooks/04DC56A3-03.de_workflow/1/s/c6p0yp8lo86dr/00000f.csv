@@ -1,4 +1,0 @@
-"0","rld.sub <- rld[ , rld$experiment %in% c(""TAA"")]"
-"0","plotPCA(rld.sub, intgroup = c(""treatment"")) + "
-"0","  geom_label_repel(aes(label = name)) + theme_bw(base_size = 15)"
-"0",""

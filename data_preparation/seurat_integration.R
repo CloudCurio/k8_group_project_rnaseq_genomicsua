@@ -6,12 +6,13 @@
 library(Matrix)
 library(Seurat)
 library(patchwork)
+library(here)
 
 ###############################################################################
 #'Set up input values
 ###############################################################################
 
-setwd("C:\\Users\\liber\\Desktop\\Study\\Genomics UA\\RNA-seq analysis with R\\Group Project")
+setwd("C:\\Users\\oleks\\Documents\\GitHub\\k8_group_project_rnaseq_genomicsua")
 
 in_dir <- "input_data\\GSE129308\\rds_data"
 out_dir <- "input_data\\GSE129308\\seurat"
@@ -23,6 +24,7 @@ dir.create(out_dir)
 ###############################################################################
 
 in_files <- list.files(in_dir, full.names = T)[2:11]
+
 seurat_list <- list()
 
 for (filename in in_files){
@@ -61,12 +63,16 @@ for (filename in in_files){
   # write.csv(metadata_df, paste(out_dir, paste(experiment_name, "_metadata.csv", sep = ""), sep = "\\"))
 }
 
+#seurat_list$GSM3704357@assays$RNA$counts
+
 ###############################################################################
 #'Perform integration
 ###############################################################################
 
 #merge objects together
 merged_seurat <- merge(seurat_list[[1]], seurat_list[-1])
+
+merged_seurat
 
 #preprocessing
 # run standard anlaysis workflow
@@ -86,3 +92,87 @@ saveRDS(merged_seurat, "input_data\\GSE129308\\seurat\\integrated_data.rds")
 #join layers after integration
 merged_seurat[["RNA"]] <- JoinLayers(merged_seurat[["RNA"]])
 saveRDS(merged_seurat, "input_data\\GSE129308\\seurat\\joined_data.rds")
+merged_seurat <- readRDS("input_data\\GSE129308\\seurat\\joined_data.rds")
+
+merged_seurat
+
+#merged_seurat <- RunUMAP(merged_seurat, dims = 1:30, reduction = "integrated.cca",
+#                          reduction.name = "umap.integrated")
+
+DimPlot(merged_seurat, reduction = "umap.integrated", 
+        group.by = c("experiment", "condition"))
+
+
+library(dplyr)
+#merged_seurat <- merged_seurat@meta.data %>% mutate(condition = case_when(
+#                          condition == "MAP2" ~ "AD"
+#))
+
+
+###############################################################################
+#' QC
+###############################################################################
+# https://satijalab.org/seurat/articles/pbmc3k_tutorial
+
+merged_seurat[["percent.mt"]] <- PercentageFeatureSet(merged_seurat, pattern = "^MT-")
+VlnPlot(merged_seurat, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+#merged_seurat <- subset(merged_seurat, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
+## which percent.mt cutoff to use for MAP2 cell? 
+## 1) who are these cells? 
+## 2) google studies showing how much of mictochondrial epxression is present in these cell types.
+
+
+###############################################################################
+#'Perform clustering
+###############################################################################
+
+# reading 1: https://satijalab.org/seurat/articles/sctransform_vignette.html
+# reading 2: https://cran.r-project.org/web/packages/clustree/vignettes/clustree.html
+
+BiocManager::install('glmGamPoi') # for SCTransform
+install.packages("clustree")
+
+merged_seurat <- SCTransform(merged_seurat, verbose = FALSE)
+
+merged_seurat <- RunPCA(merged_seurat, verbose = FALSE)
+merged_seurat <- RunUMAP(merged_seurat, dims = 1:30, verbose = FALSE)
+merged_seurat <- FindNeighbors(merged_seurat, dims = 1:30, verbose = FALSE)
+merged_seurat <- FindClusters(merged_seurat, verbose = FALSE, resolution = c(0.2, 2.4, 0.2))
+
+clustree(seurat, prefix = "res.")
+
+merged_seurat <- FindClusters(merged_seurat, verbose = FALSE, resolution = 1.4)
+
+###############################################################################
+#'Cell annotation
+###############################################################################
+
+# https://azimuth.hubmapconsortium.org/ - automatic label transfer
+# https://cran.r-project.org/web/packages/scAnnotate/index.html - alternative
+
+# https://satijalab.org/seurat/articles/pbmc3k_tutorial
+
+merged_seurat <- FindAllMarkers(merged_seurat, only.pos = TRUE)
+
+# p_val # do not use
+# avg_log2FC # filter by > 0.5
+# pct.1 # % of cells expressing this gene in the cluster (see cluster column)
+# pct.2 # % of cells eexpressing this gene in the whole dataset
+# pct.diff # do it yourself - mutate(pct.diff = pct.1 - pct.2)
+# p_val_adj # < 0.05
+# cluster # number of cluster
+# gene # gene name
+
+# cell annotation: check markers here: https://www.proteinatlas.org/
+# do the cell annotation based on the markers
+# and check the UMAP (whether it makes sense)
+# Neurons_1_Gene1_Gene2
+
+###############################################################################
+#'Differential expression
+###############################################################################
+
+# Let's meet after you have annotated the cells
+
+
+merged_seurat@assays$RNA$counts

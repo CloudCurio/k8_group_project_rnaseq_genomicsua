@@ -1,5 +1,0 @@
-"0","rld.sub <- rld[ , rld$stimulus %in% c(""carbon_tetrachloride"", ""thioacetamide"")]"
-"0","plotPCA(rld.sub, intgroup = c(""stimulus"")) + "
-"0","  geom_label_repel(aes(label = name)) + "
-"0","  theme_bw()"
-"0",""
