@@ -7,12 +7,14 @@ library(Matrix)
 library(Seurat)
 library(patchwork)
 library(here)
+library(dplyr)
 
 ###############################################################################
 #'Set up input values
 ###############################################################################
 
-setwd("C:\\Users\\oleks\\Documents\\GitHub\\k8_group_project_rnaseq_genomicsua")
+i_am("data_preparation//seurat_integration.R")
+setwd(here())
 
 in_dir <- "input_data\\GSE129308\\rds_data"
 out_dir <- "input_data\\GSE129308\\seurat"
@@ -37,7 +39,7 @@ for (filename in in_files){
   if (grepl("Control", filename)){
     condition <- rep("Control", length(metadata_rownames))
   } else {
-    condition <- rep("MAP2", length(metadata_rownames))
+    condition <- rep("AD", length(metadata_rownames))
   }
   
   #extract experiment name
@@ -74,7 +76,7 @@ merged_seurat <- merge(seurat_list[[1]], seurat_list[-1])
 
 merged_seurat
 
-#preprocessing
+# preprocessing
 # run standard anlaysis workflow
 merged_seurat <- NormalizeData(merged_seurat)
 merged_seurat <- FindVariableFeatures(merged_seurat)
@@ -86,28 +88,38 @@ merged_seurat <- IntegrateLayers(object = merged_seurat, method = CCAIntegration
                                  orig.reduction = "pca", new.reduction = "integrated.cca",
                                  verbose = FALSE)
 
-#save it because it takes A WHILE TO RUN
+# save it because it takes A WHILE TO RUN
 saveRDS(merged_seurat, "input_data\\GSE129308\\seurat\\integrated_data.rds")
 
-#join layers after integration
+# join layers after integration
 merged_seurat[["RNA"]] <- JoinLayers(merged_seurat[["RNA"]])
 saveRDS(merged_seurat, "input_data\\GSE129308\\seurat\\joined_data.rds")
-merged_seurat <- readRDS("input_data\\GSE129308\\seurat\\joined_data.rds")
 
-merged_seurat
+###############################################################################
+#'Shortcut of 70:97 uncomment this chunk to load the integrated file directly
+#'Until the large file is fixed - run the mutate command to fix the labels
+#'TODO: rerun the integration to make mutate obsolete
+###############################################################################
 
-#merged_seurat <- RunUMAP(merged_seurat, dims = 1:30, reduction = "integrated.cca",
-#                          reduction.name = "umap.integrated")
+# merged_seurat <- readRDS("input_data\\GSE129308\\seurat\\joined_data.rds")
+# 
+# #fix labeling (from MAP2 to AD for disease)
+# merged_seurat <- merged_seurat@meta.data %>% mutate(condition = case_when(
+#                          condition == "MAP2" ~ "AD",
+#                          .default = "Control"
+# ))
+
+###############################################################################
+#'Integration cont'd: make a UMAP of the data, check that all clusters are
+#'nicely integrated.
+###############################################################################
+
+#Make a UMAP of the merged object
+merged_seurat <- RunUMAP(merged_seurat, dims = 1:30, reduction = "integrated.cca",
+                         reduction.name = "umap.integrated")
 
 DimPlot(merged_seurat, reduction = "umap.integrated", 
-        group.by = c("experiment", "condition"))
-
-
-library(dplyr)
-#merged_seurat <- merged_seurat@meta.data %>% mutate(condition = case_when(
-#                          condition == "MAP2" ~ "AD"
-#))
-
+        group.by = c("orig.ident", "condition"))
 
 ###############################################################################
 #' QC
@@ -117,6 +129,7 @@ library(dplyr)
 merged_seurat[["percent.mt"]] <- PercentageFeatureSet(merged_seurat, pattern = "^MT-")
 VlnPlot(merged_seurat, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
 #merged_seurat <- subset(merged_seurat, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
+##TODO: solve the following questions:
 ## which percent.mt cutoff to use for MAP2 cell? 
 ## 1) who are these cells? 
 ## 2) google studies showing how much of mictochondrial epxression is present in these cell types.
@@ -151,6 +164,8 @@ merged_seurat <- FindClusters(merged_seurat, verbose = FALSE, resolution = 1.4)
 # https://cran.r-project.org/web/packages/scAnnotate/index.html - alternative
 
 # https://satijalab.org/seurat/articles/pbmc3k_tutorial
+
+#TODO: split clusters for annotation between group members
 
 merged_seurat <- FindAllMarkers(merged_seurat, only.pos = TRUE)
 
