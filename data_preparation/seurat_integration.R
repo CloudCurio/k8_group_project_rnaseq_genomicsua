@@ -97,17 +97,21 @@ saveRDS(merged_seurat, "input_data\\GSE129308\\seurat\\joined_data.rds")
 
 ###############################################################################
 #'Shortcut of 70:97 uncomment this chunk to load the integrated file directly
-#'Until the large file is fixed - run the mutate command to fix the labels
-#'TODO: rerun the integration to make mutate obsolete
+#'TODO: just cut it into a separate script
 ###############################################################################
 
-# merged_seurat <- readRDS("input_data\\GSE129308\\seurat\\joined_data.rds")
-# 
-# #fix labeling (from MAP2 to AD for disease)
-# merged_seurat <- merged_seurat@meta.data %>% mutate(condition = case_when(
-#                          condition == "MAP2" ~ "AD",
-#                          .default = "Control"
-# ))
+#merged_seurat <- readRDS("input_data\\GSE129308\\seurat\\joined_data.rds")
+
+
+#'@NOTE: this chunk is obsolete, but there was a problem with it. Figure out
+#'why controls switch to NA without @param .default specified, but specifying
+#'@param .default breaks the RunUMAP() function
+#'  
+#'fix labeling (from MAP2 to AD for disease)
+#'merged_seurat <- merged_seurat@meta.data %>% mutate(condition = case_when(
+#'                         condition == "MAP2" ~ "AD",
+#'                         .default = "Control"
+#'))
 
 ###############################################################################
 #'Integration cont'd: make a UMAP of the data, check that all clusters are
@@ -126,14 +130,18 @@ DimPlot(merged_seurat, reduction = "umap.integrated",
 ###############################################################################
 # https://satijalab.org/seurat/articles/pbmc3k_tutorial
 
+#save cell number for further measurements
+orig_count <- ncol(merged_seurat)
+
 merged_seurat[["percent.mt"]] <- PercentageFeatureSet(merged_seurat, pattern = "^MT-")
 VlnPlot(merged_seurat, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
-#merged_seurat <- subset(merged_seurat, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
-##TODO: solve the following questions:
-## which percent.mt cutoff to use for MAP2 cell? 
-## 1) who are these cells? 
-## 2) google studies showing how much of mictochondrial epxression is present in these cell types.
+merged_seurat <- subset(merged_seurat, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 13)
 
+#check the retention percentage
+print(paste("Percentage of cells left after MT-genes filtering: ", round(ncol(merged_seurat)*100/orig_count,3), "%", sep = ""))
+
+#write merged_seurat into a file
+saveRDS(merged_seurat, "input_data\\GSE129308\\seurat\\cleaned_data.rds")
 
 ###############################################################################
 #'Perform clustering
