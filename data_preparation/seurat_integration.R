@@ -8,6 +8,9 @@ library(Seurat)
 library(patchwork)
 library(here)
 library(dplyr)
+library(glmGamPoi)
+library(clustree)
+library(Azimuth)
 
 ###############################################################################
 #'Set up input values
@@ -150,19 +153,25 @@ saveRDS(merged_seurat, "input_data\\GSE129308\\seurat\\cleaned_data.rds")
 # reading 1: https://satijalab.org/seurat/articles/sctransform_vignette.html
 # reading 2: https://cran.r-project.org/web/packages/clustree/vignettes/clustree.html
 
-BiocManager::install('glmGamPoi') # for SCTransform
-install.packages("clustree")
+#load obj
+merged_seurat <- readRDS("input_data\\GSE129308\\seurat\\cleaned_data.rds")
 
-merged_seurat <- SCTransform(merged_seurat, verbose = FALSE)
-
+#replaced with NormalizeData(). Reason: dataset exceeds max size (500 Mb) (local machine limitations)
+#merged_seurat <- SCTransform(merged_seurat, verbose = FALSE)
+merged_seurat <- NormalizeData(merged_seurat, verbose = FALSE)
 merged_seurat <- RunPCA(merged_seurat, verbose = FALSE)
 merged_seurat <- RunUMAP(merged_seurat, dims = 1:30, verbose = FALSE)
 merged_seurat <- FindNeighbors(merged_seurat, dims = 1:30, verbose = FALSE)
-merged_seurat <- FindClusters(merged_seurat, verbose = FALSE, resolution = c(0.2, 2.4, 0.2))
 
-clustree(seurat, prefix = "res.")
+merged_seurat <- FindClusters(merged_seurat, verbose = FALSE, resolution = seq(0.2, 2.4, 0.2))
+
+clustree(merged_seurat, prefix = "RNA_snn_res.")
+#'conclusion: @param resolution = 1.4 is chosen, since a lot of crossovers 
+#'happen at 1.4/1.6 with not much change in cluster size
 
 merged_seurat <- FindClusters(merged_seurat, verbose = FALSE, resolution = 1.4)
+
+saveRDS(merged_seurat, "input_data\\GSE129308\\seurat\\clustered_data.rds")
 
 ###############################################################################
 #'Cell annotation
@@ -173,7 +182,7 @@ merged_seurat <- FindClusters(merged_seurat, verbose = FALSE, resolution = 1.4)
 
 # https://satijalab.org/seurat/articles/pbmc3k_tutorial
 
-#TODO: split clusters for annotation between group members
+merged_seurat <- readRDS("input_data\\GSE129308\\seurat\\clustered_data.rds")
 
 merged_seurat <- FindAllMarkers(merged_seurat, only.pos = TRUE)
 
