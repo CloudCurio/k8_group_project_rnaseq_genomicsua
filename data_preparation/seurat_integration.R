@@ -5,12 +5,17 @@
 
 library(Matrix)
 library(Seurat)
+library(SeuratDisk)
+library(SeuratData)
 library(patchwork)
 library(here)
 library(dplyr)
 library(glmGamPoi)
 library(clustree)
 library(Azimuth)
+
+# Install the Azimuth human cortex reference dataset
+InstallData("humancortexref")
 
 ###############################################################################
 #'Set up input values
@@ -182,9 +187,36 @@ saveRDS(merged_seurat, "input_data\\GSE129308\\seurat\\clustered_data.rds")
 
 # https://satijalab.org/seurat/articles/pbmc3k_tutorial
 
-merged_seurat <- readRDS("input_data\\GSE129308\\seurat\\clustered_data.rds")
+merged_seurat <- readRDS("input_data\\GSE129308\\seurat\\clustered_data_1.4.rds")
 
-merged_seurat <- FindAllMarkers(merged_seurat, only.pos = TRUE)
+#load reference dataset
+LoadData("humancortexref", "azimuth")
+
+# The RunAzimuth function can take a Seurat object as input
+#for understanding the scores: https://github.com/satijalab/azimuth/issues/93
+merged_seurat <- RunAzimuth(merged_seurat, reference = "humancortexref")
+
+#plot clusters, condition and other useful parameters (such as metrics)
+p1 <- DimPlot(merged_seurat, group.by = "predicted.subclass", label = TRUE, label.size = 3) + NoLegend()
+p2 <- DimPlot(merged_seurat, group.by = "condition")
+p3 <- DimPlot(merged_seurat, group.by = "seurat_clusters", label = TRUE, label.size = 3) + NoLegend()
+p4 <- FeaturePlot(merged_seurat, features = "mapping.score")
+p5 <- FeaturePlot(merged_seurat, features = "predicted.subclass.score")
+
+p1 + p2 #predicted subclass and condition
+p1 + p3 #predicted subclass and seurat clustering comparison
+p4 + p5 #mapping score and pred subclass score visualization
+
+#add a subclass+condition metadata column
+merged_seurat$subclass_cond <- paste(merged_seurat$predicted.subclass, merged_seurat$condition, sep = ".")
+
+
+#save seurat obj for future use
+saveRDS(merged_seurat, "input_data\\GSE129308\\seurat\\annot_data_1.4.rds")
+
+#TODO: Selected neuron subtypes for further work: L2/3 (IT), L5 (IT+ET), L6(IT+CT), Astro
+
+#merged_seurat <- FindAllMarkers(merged_seurat, only.pos = TRUE)
 
 # p_val # do not use
 # avg_log2FC # filter by > 0.5
