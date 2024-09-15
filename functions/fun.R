@@ -256,19 +256,22 @@ DESeq2_workflow <- function(counts_ls, metadata_ls, celltype, out_dir){
   #volcano plot
   res_table_thres <- res_tbl[!is.na(res_tbl$padj), ] %>% 
     mutate(threshold = padj < padj_cutoff & abs(log2FoldChange) >= log2fc_cutoff)
+
   min(log10(res_table_thres$padj))
   max(log10(res_table_thres$padj))
   
   ## Generate plot
   p <- ggplot(res_table_thres) +
     geom_point(aes(x = log2FoldChange, y = -log10(padj), colour = threshold)) +
-    ggtitle("Volcano plot of stimulated B cells relative to control") +
+    ggtitle(paste("AD patient", celltype, "cells relative to control")) +
     xlab("log2 fold change") +
     xlim(-4.5, 12) +
     ylab("-log10 adjusted p-value") +
     scale_y_continuous(limits = c(0, 2)) +
-    scale_color_manual(values = c("grey60", "red3")) +
-    theme(legend.position = "none",
+    scale_color_manual(values = c("grey60", "red3"),
+                       name = "DE significance",
+                       labels = c("Significant", "Insignificant")) +
+    theme(legend.position = "topright",
           plot.title = element_text(size = rel(1.3), hjust = 0.5),
           axis.title = element_text(size = rel(1.15)))
   ggsave(paste(out_dir, file_celltype, "DE_plots", "volcano_AD_vs_Ctrl.png", sep = "\\"), p)
@@ -276,4 +279,37 @@ DESeq2_workflow <- function(counts_ls, metadata_ls, celltype, out_dir){
   
   #return numbers of significantly up/downregulated genes for an overall table
   return(c(n_sig_up, n_sig_dn))
+}
+
+###############################################################################
+#'@author O.Petrenko (GenomicsUA)
+#'@source https://github.com/GenomicsUA/2024-daad-rnaseq-course/blob/main/02_classes/10_functional_analysis/99_overrepresentation_filled.Rmd
+#'Slight modification because it didn't work with pdf device for some reason:
+#'print() substituted return()
+###############################################################################
+
+plot_enrichr_results <- function(enrichr_results, pval_threshold = 0.05, 
+                                 top_n = 10, fill_column = "Combined.Score") {
+  
+  filtered_results <- enrichr_results %>%
+    filter(Adjusted.P.value <= pval_threshold) %>%
+    arrange(Adjusted.P.value) %>%
+    head(top_n)
+  
+  p <- ggplot(filtered_results, aes(x = reorder(Term, -Adjusted.P.value), 
+                                    y = -log10(Adjusted.P.value), 
+                                    fill = !!sym(fill_column))) +
+    geom_bar(stat = "identity") +
+    scale_fill_gradient(low = "#00b1b1", high = "#9f0077") +
+    coord_flip() +
+    theme_minimal() +
+    labs(title = "Top Enrichment Terms",
+         x = "Enrichment Term",
+         y = "-log10(Adjusted P-value)",
+         fill = fill_column) +
+    theme(axis.text = element_text(size = 12),
+          axis.title = element_text(size = 14),
+          plot.title = element_text(size = 16, face = "bold"))
+  
+  return(p)
 }

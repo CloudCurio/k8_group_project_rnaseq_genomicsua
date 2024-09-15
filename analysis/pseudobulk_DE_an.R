@@ -26,8 +26,6 @@ library(DESeq2)
 library(RColorBrewer)
 library(data.table)
 
-source("functions//fun.R")
-
 # Install the Azimuth human cortex reference dataset
 InstallData("humancortexref")
 
@@ -35,8 +33,10 @@ InstallData("humancortexref")
 #'Set up input values
 ###############################################################################
 
-i_am("data_preparation//seurat_integration.R")
+i_am("analysis//pseudobulk_DE_an.R")
 setwd(here())
+
+source("functions//fun.R")
 
 in_dir <- "input_data\\GSE129308\\rds_data"
 out_dir <- "outputs\\GSE129308\\pseudobulk"
